@@ -30,19 +30,19 @@ class OptimalTrajectoryPlanner:
         if self.init_speed > self.low_speed_ths:
             target_s = self.init_speed * self.planning_horizon
 
+
         quinticPolynomialGenerator = QuinticPolynomialGenerator(self.ego_lat_pos, self.ego_lat_speed, self.ego_lat_acc, target_d, target_s)
         quinticPolynomialGenerator.calculate()
         params = quinticPolynomialGenerator.getParams()
 
         total_jerk, total_length, total_lateral_error = 0, 0, 0
-        ds =  self.dt * self.init_speed
-        planning_dist = self.planning_horizon * self.init_speed
+        ds =  max(self.dt * self.init_speed, self.dt * self.low_speed_ths)
         # for s in range(0, planning_dist, ds):
         s = 0
-        while s < planning_dist:  
+        while s < target_s:
             jerk, length, lateral_error = 0, 0, 0
             # jerk
-            if s < planning_dist - ds * 3:
+            if s < target_s - ds * 2:
                 # s_list = [s_0, s_1, s_2, s_3]
                 # s_0 = s
                 # s_1 = s + self.dt * init_speed
@@ -51,11 +51,10 @@ class OptimalTrajectoryPlanner:
                 s_list = []
                 for i in range(4):
                     s_list.append(s + ds * i)
-
                 # d_list = [d_0, d_1, d_2, d_3]
                 d_list = []
-                for s in s_list:
-                    d_list.append(params[0] + params[1] * s + params[2] * (s ** 2) + params[3] * (s ** 3) + params[4] * (s ** 4) + params[5] * (s ** 5))
+                for s_ in s_list:
+                    d_list.append(params[0] + params[1] * s_ + params[2] * (s_ ** 2) + params[3] * (s_ ** 3) + params[4] * (s_ ** 4) + params[5] * (s_ ** 5))
                 
                 # jerk = {a_1 - a_0} / dt
                 #      = {(v_2 - v_1) - (v_1 - v_0)} /dt^2 = {v_2 - 2 v_1 + v_0} /dt^2
@@ -65,25 +64,25 @@ class OptimalTrajectoryPlanner:
                 lat_jerk = (d_list[3] - 3 * d_list[2] + 3 * d_list[1] - d_list[0]) / (self.dt ** 3)
                 jerk = math.sqrt(long_jerk ** 2 + lat_jerk ** 2)    
                 total_jerk += jerk
-
             # length
-            if s < planning_dist - ds:
+            if s < target_s:
                 s_0 = s
                 s_1 = s + ds
                 d_0 = params[0] + params[1] * s_0 + params[2] * (s_0 ** 2) + params[3] * (s_0 ** 3) + params[4] * (s_0 ** 4) + params[5] * (s_0 ** 5)
                 d_1 = params[0] + params[1] * s_1 + params[2] * (s_1 ** 2) + params[3] * (s_1 ** 3) + params[4] * (s_1 ** 4) + params[5] * (s_1 ** 5)
                 lat_length = abs(d_1 - d_0)
                 long_length = ds
+                print("s",s,"lat length", lat_length, "long length", long_length, "length",math.sqrt(lat_length ** 2 + long_length ** 2))
                 total_length += math.sqrt(lat_length ** 2 + long_length ** 2)
 
             # lateral error
             d = params[0] + params[1] * s + params[2] * (s ** 2) + params[3] * (s ** 3) + params[4] * (s ** 4) + params[5] * (s ** 5)
             lateral_error = (target_d - d) ** 2
             total_lateral_error += lateral_error
-
             s += ds
         
         cost = self.jerk_weight * total_jerk + self.length_weight * total_length + self.lateral_error_weight * total_lateral_error
+        print("jerk : ", total_jerk, "total_length : ", total_length, "total_lateral_error : ", total_lateral_error)
         return params, cost
 
 
