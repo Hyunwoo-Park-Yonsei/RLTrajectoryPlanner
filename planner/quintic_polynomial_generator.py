@@ -21,9 +21,10 @@ class QuinticPolynomialGenerator:
                     [       6 * self.T, 12 * (self.T ** 2), 20 * (self.T ** 3)]])
         # x (a3, a4, a5)
         B = np.array([self.target_d - (self.init_d + self.init_d_dot * self.T + 0.5 * self.init_d_ddot * (self.T ** 2)),
-                      -(self.init_d + self.init_d_dot * self.T),
+                      -(self.init_d_dot + self.init_d_ddot * self.T),
                       -(self.init_d_ddot)])
         x = np.linalg.inv(A).dot(B)
+        # x = B.dot(np.linalg.inv(A)))
 
         self.a3 = x[0]
         self.a4 = x[1]

@@ -20,6 +20,8 @@ class KeyboardEventHandler:
                 if self.is_space_pressed:
                     self.evt.set()
                 self.is_space_pressed = not self.is_space_pressed
+                print("stop",self.is_space_pressed)
+                
             if key == keyboard.KeyCode(char='r'):
                 self.reset_flag = True
                 
