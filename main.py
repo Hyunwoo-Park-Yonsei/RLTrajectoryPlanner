@@ -43,8 +43,8 @@ def main():
     generate_data = False
     # mode = "Rule-based, Learning, Evaluation"
     mode = "Rule-based"
-    num_of_other_vehicles = 1
-    num_of_lanes = 2
+    num_of_other_vehicles = 10
+    num_of_lanes = 5
     env = gym.make('highway-v0')
     # env.config["show_trajectories"] = True
     env.config["vehicles_count"] = num_of_other_vehicles

@@ -17,7 +17,7 @@ class OptimalTrajectoryPlanner:
      
         self.lane_width = 3.5 # m
         self.low_speed_ths = 10/3.6 # 10 km/h
-        self.planning_horizon = 5 # second
+        self.planning_horizon = 7 # second
         self.dt = 0.5
         self.jerk_weight = 1.0
         self.length_weight = 10.0
@@ -29,7 +29,7 @@ class OptimalTrajectoryPlanner:
         self.target_d = [- 4, 0, 4]
         self.target_s = 0,0,0,0,0,0,0,0,0,0
 
-        self.long_control_time = 2.5 # second
+        self.long_control_time = 3.5 # second
 
         self.control_target_d = 0.0
         self.control_target_s = 0.0
@@ -50,6 +50,7 @@ class OptimalTrajectoryPlanner:
 
         self.is_lane_change = False
         self.max_lane_idx = max_lane_idx
+        self.lat_control_weight = 0.15
     
     def update(self, ego_lat_pos, ego_lat_speed, ego_lat_acc, ego_long_speed, ego_long_acc, oa_pos, oa_speed, oa_heading, ego_lane_idx):
         
@@ -412,7 +413,7 @@ class OptimalTrajectoryPlanner:
         heading_control = yaw_error
         print("lateral_control", lateral_control, "heading_control", heading_control)
         print("s_0",s_0,"s_1",s_1,"d_0",d_0,"d_1", d_1, "angle", math.atan2(d_1-d_0,s_1-s_0), "yaw", yaw)
-        return (lateral_control + heading_control) * 0.08
+        return (lateral_control + heading_control) * self.lat_control_weight
     
 
         
