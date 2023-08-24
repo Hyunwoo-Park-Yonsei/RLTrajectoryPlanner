@@ -29,7 +29,7 @@ batch_size = 256
 teraminal_penalty = -100
 
 lat_P = 1
-lat_I = 0
+lat_I = 0.15
 lat_D = 0
 long_P = 1.0
 long_I = 1.0
@@ -43,12 +43,15 @@ def main():
     generate_data = False
     # mode = "Rule-based, Learning, Evaluation"
     mode = "Rule-based"
-    num_of_other_vehicles = 10
+    num_of_other_vehicles = 1
+    num_of_lanes = 2
     env = gym.make('highway-v0')
     # env.config["show_trajectories"] = True
     env.config["vehicles_count"] = num_of_other_vehicles
+    env.config["simulation_frequency"] = 30
+    env.config["policy_frequency"] = 30
     env.configure({
-        "lanes_count": 10,
+        "lanes_count": num_of_lanes,
         "action": {
             "type" : "ContinuousAction"
         },
@@ -117,6 +120,8 @@ def main():
 
     else:
         policy = TD3(401, 2, 1)
+    ego_lane_idx = np.array(env.road.network.get_closest_lane_index(np.array(ego))[2],np.float32)
+    optimalTrajectoryPlanner = OptimalTrajectoryPlanner(num_of_lanes,ego_lane_idx)
 
     for t in range(max_timesteps):
         episode_timesteps += 1
@@ -150,21 +155,23 @@ def main():
                 ego_y_pos = ego[1]
                 ego_y_pos -= ego_lane_idx * 4
                 print("ego_y_pos",ego_y_pos)
-                optimalTrajectoryPlanner = OptimalTrajectoryPlanner(ego_y_pos, ego_speed[1], 0, ego_speed[0], 0, other_agent_pos, other_agent_speed, other_agent_heading, ego_lane_idx)
+                optimalTrajectoryPlanner.update(ego_y_pos, ego_speed[1], 0, ego_speed[0], 0, other_agent_pos, other_agent_speed, other_agent_heading, ego_lane_idx)
                 optimalTrajectoryPlanner.plan()
 
                 # control_target_d = optimalTrajectoryPlanner.getPurePursuitControl()
-                control_target_d = optimalTrajectoryPlanner.getStanleyControl()
+                steer = optimalTrajectoryPlanner.getStanleyControl()
                 _, control_target_s = optimalTrajectoryPlanner.getControlPoint()
+                accel = (control_target_s - 12.5) * 0.1
+                print("control_target_s",control_target_s,"accel",accel)
                 # # temp
                 # control_target_s = PID_target_time * env.road.vehicles[0].speed 
                 # ######
-                print("control_target_d ", control_target_d)
-                lat_controller.update(0,control_target_d)
-                long_controller.update(ego_speed[0],control_target_s)
+                # print("control_target_d ", control_target_d)
+                # lat_controller.update(0,control_target_d)
+                # long_controller.update(ego_speed[0],control_target_s)
 
                 # action = [lat_controller.getControl(), long_controller.getControl()]
-                action = [0, lat_controller.getControl()]
+                action = [0, steer]
             else:
                 action = [np.random.normal(0, 0.05, 1),np.random.normal(0, 0.05, 1)]
         else:
@@ -173,23 +180,26 @@ def main():
                 ego_y_pos = ego[1]
                 ego_y_pos -= ego_lane_idx * 4
                 print("ego_y_pos",ego_y_pos)
-                optimalTrajectoryPlanner = OptimalTrajectoryPlanner(ego_y_pos, ego_speed[1], 0, ego_speed[0], 0, other_agent_pos, other_agent_speed, other_agent_heading, ego_lane_idx)
+                optimalTrajectoryPlanner.update(ego_y_pos, ego_speed[1], 0, ego_speed[0], 0, other_agent_pos, other_agent_speed, other_agent_heading, ego_lane_idx)
                 optimalTrajectoryPlanner.plan()
 
+
                 # control_target_d = optimalTrajectoryPlanner.getPurePursuitControl()
-                control_target_d = optimalTrajectoryPlanner.getStanleyControl()
-                # control_target_d, control_target_s = optimalTrajectoryPlanner.getControlPoint()
-                # temp
-                control_target_s = PID_target_time * env.road.vehicles[0].speed 
-                ######
-                print("control_target_d ", control_target_d)
-                lat_controller.update(0,control_target_d)
-                long_controller.update(ego_speed[0],control_target_s)
+                steer = optimalTrajectoryPlanner.getStanleyControl()
+                _, control_target_s = optimalTrajectoryPlanner.getControlPoint()
+                accel = (control_target_s - 0.2) * 0.1
+                print("accel",accel)
+                # # temp
+                # control_target_s = PID_target_time * env.road.vehicles[0].speed 
+                # ######
+                # print("control_target_d ", control_target_d)
+                # lat_controller.update(0,control_target_d)
+                # long_controller.update(ego_speed[0],control_target_s)
 
-                # action = [lat_controller.getControl(), long_controller.getControl()]
-                action = [0, lat_controller.getControl()]
 
-                action = [0,lat_controller.getControl()]
+                # action = [0, steer + lat_controller.getControl()]
+                action = [0, steer]
+                # action = [0, steer + lat_controller.getControl()]
             else:
                 action = (policy.select_action(np.array(state)) + np.random.normal(0, max_action * expl_noise, size=2)).clip(-max_action, max_action)
         
@@ -220,6 +230,7 @@ def main():
         episode_reward += reward
 
         if done:
+            exit()
             # +1 to account for 0 indexing. +0 on ep_timesteps since it will increment +1 even if done=True
             print(f"Total T: {t+1} Episode Num: {episode_num+1} Episode T: {episode_timesteps} Reward: {episode_reward:.3f}")
 			# Reset environment 
