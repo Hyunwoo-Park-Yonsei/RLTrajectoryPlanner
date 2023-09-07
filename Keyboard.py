@@ -18,9 +18,12 @@ class KeyboardEventHandler:
         if self.activate:
             if key == keyboard.Key.space:
                 if self.is_space_pressed:
-                    self.evt.set()
-                self.is_space_pressed = not self.is_space_pressed
-                print("stop",self.is_space_pressed)
+                    self.is_space_pressed = False
+                    print("GO")
+                else:
+                    self.is_space_pressed = True
+                    print("STOP")
+
                 
             if key == keyboard.KeyCode(char='r'):
                 self.reset_flag = True
@@ -37,8 +40,8 @@ class KeyboardEventHandler:
 
 
 # while True:
-#     print(0)
+#     #print(0)
 #     evt.wait()
-#     print(1)
+#     #print(1)
 #     evt.clear()
 

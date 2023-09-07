@@ -6,15 +6,15 @@ import math
 import torch
 
 def printObs(obs):
-    print("================================================================================")
+    #print("================================================================================")
     for a in obs:
         for b in a:
             s = '%-5s' % str(round(b*100,1))
             # if col_count == col or row_count == row:
             #     s = '%-s' % " "
-            print(s,end=" ")
-        print(" ")
-    print()
+            #print(s,end=" ")
+        #print(" ")
+    #print()
 
 
 def calculateProb(output, steer, accel):

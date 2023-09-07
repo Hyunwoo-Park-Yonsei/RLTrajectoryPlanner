@@ -124,6 +124,7 @@ def main():
     optimalTrajectoryPlanner = OptimalTrajectoryPlanner(num_of_lanes,ego_lane_idx)
 
     for t in range(max_timesteps):
+        print("\n \n \n")
         episode_timesteps += 1
 
         # acceleration and steering angle
@@ -132,8 +133,8 @@ def main():
         ego = env.road.vehicles[0].position
         ego_heading = env.road.vehicles[0].heading / math.pi
         ego_speed = [env.road.vehicles[0].speed / 3.6 * math.cos(ego_heading), env.road.vehicles[0].speed / 3.6 * math.sin(ego_heading)]
-        print("ego_heading", ego_heading)
-        print("ego_speed", ego_speed)
+        # print("ego_heading", ego_heading)
+        # print("ego_speed", ego_speed)
         ego_lane_idx = np.array(env.road.network.get_closest_lane_index(np.array(ego))[2],np.float32)
         # print("ego_lane_idx",ego_lane_idx)
         other_agent_heading = []
@@ -147,65 +148,69 @@ def main():
                     other_agent_speed.append(env.road.vehicles[i].speed/3.6)
                     other_agent_pos.append([env.road.vehicles[i].position[0] - ego[0], env.road.vehicles[i].position[1] - ego[1]])
         if keyboard_listener.is_space_pressed:
-            evt.wait()
+            print("wait!!")
+        while keyboard_listener.is_space_pressed:
+            pass
+            # evt.wait()
+        # print("oa_pos")
+        # print(other_agent_pos)
+        # print("oa_speed")
+        # print(other_agent_speed)
 
         if t < episode_timesteps:
             if mode == "Rule-based":
-                print("ego",ego)
                 ego_y_pos = ego[1]
                 ego_y_pos -= ego_lane_idx * 4
-                print("ego_y_pos",ego_y_pos)
                 optimalTrajectoryPlanner.update(ego_y_pos, ego_speed[1], 0, ego_speed[0], 0, other_agent_pos, other_agent_speed, other_agent_heading, ego_lane_idx)
                 optimalTrajectoryPlanner.plan()
 
                 # control_target_d = optimalTrajectoryPlanner.getPurePursuitControl()
                 steer = optimalTrajectoryPlanner.getStanleyControl()
-                _, control_target_s = optimalTrajectoryPlanner.getControlPoint()
-                accel = (control_target_s - 12.5) * 0.1
-                print("control_target_s",control_target_s,"accel",accel)
+                _, control_target_v = optimalTrajectoryPlanner.getControlPoint()
+                accel = (control_target_v - ego_speed[0]) * 1
+                print("control_target_v",control_target_v,"accel",accel)
                 # # temp
                 # control_target_s = PID_target_time * env.road.vehicles[0].speed 
                 # ######
-                # print("control_target_d ", control_target_d)
+                # #print("control_target_d ", control_target_d)
                 # lat_controller.update(0,control_target_d)
                 # long_controller.update(ego_speed[0],control_target_s)
 
                 # action = [lat_controller.getControl(), long_controller.getControl()]
-                action = [0, steer]
+                action = [accel, steer]
             else:
                 action = [np.random.normal(0, 0.05, 1),np.random.normal(0, 0.05, 1)]
         else:
             if mode == "Rule-based":
-                print("ego",ego)
                 ego_y_pos = ego[1]
                 ego_y_pos -= ego_lane_idx * 4
-                print("ego_y_pos",ego_y_pos)
                 optimalTrajectoryPlanner.update(ego_y_pos, ego_speed[1], 0, ego_speed[0], 0, other_agent_pos, other_agent_speed, other_agent_heading, ego_lane_idx)
                 optimalTrajectoryPlanner.plan()
 
 
                 # control_target_d = optimalTrajectoryPlanner.getPurePursuitControl()
                 steer = optimalTrajectoryPlanner.getStanleyControl()
-                _, control_target_s = optimalTrajectoryPlanner.getControlPoint()
-                accel = (control_target_s - 0.2) * 0.1
-                print("accel",accel)
+                _, control_target_v = optimalTrajectoryPlanner.getControlPoint()
+                accel = (control_target_v - ego_speed[0]) * 100
+                #print("control target v ", control_target_v)
+                #print("accel",accel)
                 # # temp
                 # control_target_s = PID_target_time * env.road.vehicles[0].speed 
                 # ######
-                # print("control_target_d ", control_target_d)
+                # #print("control_target_d ", control_target_d)
                 # lat_controller.update(0,control_target_d)
                 # long_controller.update(ego_speed[0],control_target_s)
 
 
                 # action = [0, steer + lat_controller.getControl()]
-                action = [0, steer]
+                action = [accel, steer]
                 # action = [0, steer + lat_controller.getControl()]
             else:
                 action = (policy.select_action(np.array(state)) + np.random.normal(0, max_action * expl_noise, size=2)).clip(-max_action, max_action)
         
         # action[0] = action[0]
         # action[1] = action[1]
-        print("action",action,"\n")
+        #print("action",action,"\n")
 
         state_prime, reward, done, info = env.step(action)
         # done_bool = float(done) if episode_timesteps < env._max_episode_steps else 0         
@@ -232,7 +237,7 @@ def main():
         if done:
             exit()
             # +1 to account for 0 indexing. +0 on ep_timesteps since it will increment +1 even if done=True
-            print(f"Total T: {t+1} Episode Num: {episode_num+1} Episode T: {episode_timesteps} Reward: {episode_reward:.3f}")
+            #print(f"Total T: {t+1} Episode Num: {episode_num+1} Episode T: {episode_timesteps} Reward: {episode_reward:.3f}")
 			# Reset environment 
             state, done = env.reset(), False
             lat_controller.reset()
@@ -258,7 +263,7 @@ def main():
         if generate_data:
             f.write(np.array_str(obs))
 
-    evt.clear()
+    # evt.clear()
 if __name__ == '__main__':
     evt = threading.Event()
     keyboard_listener = KeyboardEventHandler(evt)

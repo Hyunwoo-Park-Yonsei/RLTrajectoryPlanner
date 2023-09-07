@@ -11,7 +11,7 @@ class SimpleModel(nn.Module):
         self.ego_state_num = 5
         # Wx, Wh, b should be tensor using GPU
         self.linear = nn.Linear(grid_num + self.target_num + self.ego_state_num,1)
-        print(self.linear)
+        #print(self.linear)
         quit()
         
     # getting the y from the x

@@ -34,11 +34,11 @@ class Policy(nn.Module):
         R = 0
         self.optimizer.zero_grad()
         for r, prob in self.data[::-1]:
-            print("r",r)
-            print("prob",prob)
+            #print("r",r)
+            #print("prob",prob)
             R = r + gamma + R
             loss = -R * torch.log(prob)
-            print("loss ",loss)
+            #print("loss ",loss)
             loss.backward()
         self.optimizer.step()
         self.data = []
